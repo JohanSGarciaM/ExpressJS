@@ -4,11 +4,15 @@ const fs = require('fs');
 const path = require('path');
 const usersFilePath = path.join(__dirname, 'users.json');
 
-
+const errorHandler = require('./middlewares/errorHandle');
+const loggerMiddleware = require('./middlewares/logger')
 const app = express();
 const bodyParser = require('body-parser');
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
+app.use(loggerMiddleware);
+app.use(errorHandler);
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 function validateEmail(email) {
@@ -140,6 +144,10 @@ app.delete('/users/:id', ( req , res ) => {
         });
     });
 });
+
+app.get('/error',  ( req , res , next) => {
+    next(new Error('Error intencional'));
+})
 
 app.listen(PORT, () => {
     console.log(`Servidor: http//localhost:${PORT}`);
