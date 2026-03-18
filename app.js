@@ -1,4 +1,14 @@
+require('dotenv').config();
 const express = require('express');
+
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { PrismaClient } = require('./generated/prisma');
+
+const connectionString = `${process.env.DATABASE_URL}`;
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
+
 
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +22,7 @@ const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
 app.use(loggerMiddleware);
-app.use(errorHandler);
+
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 function validateEmail(email) {
@@ -20,8 +30,15 @@ function validateEmail(email) {
 }
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT?.trim(), 10) || 3000;
 
+process.on('uncaughtException', (err) => {
+    console.error('Error no capturado:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('Promesa rechazada:', err);
+});
 app.get('/', (req,res) => {
     res.send(`
         <h1>Curso de ExpressJS</h1>
@@ -30,7 +47,6 @@ app.get('/', (req,res) => {
         <p>Realizado por Sebastian Garcia <johangarciats2015@gmail.com> </p>
     `);
 });
-
 app.get('/users/:id', (req , res) => {
     const userId = req.params.id;
     res.send(`Mostrar información del usuario con ID: ${userId}`);
@@ -62,7 +78,7 @@ app.post('/form', ( req , res ) => {
 
 app.post('/api/data', ( req , res ) => {
     const  data = req.body;
-    if (!data || Object.keys(data).legth === 0){
+    if (!data || Object.keys(data).length === 0){
         return res.status(400).json({error: 'No se recibieron los datos'});
     }
     res.status(201).json({
@@ -146,10 +162,20 @@ app.delete('/users/:id', ( req , res ) => {
 });
 
 app.get('/error',  ( req , res , next) => {
-    next(new Error('Error intencional'));
+    next(new Error('Error intencional')); 
 })
 
-app.listen(PORT, () => {
-    console.log(`Servidor: http//localhost:${PORT}`);
+app.get('/db-users', async (req, res) => {
+    try{
+        const users = await prisma.user.findMany();
+        res.json(users);
+    }catch (error){
+        res.status(500).json({error: 'Error al comunicarse con la bd.'});
+    }
 });
-
+app.use(errorHandler);
+app.listen(PORT, () => {
+    console.log("TIPO:", typeof PORT);
+    console.log("VALOR:", PORT);
+    console.log(`Servidor: http://localhost:${PORT}`);
+});
