@@ -1,6 +1,8 @@
+require('dotenv').config();
 //const { PrismaClient } = require('@prisma/client');
 const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
+console.log(process.env.DATABASE_URL);
+const prisma = new PrismaClient({});
 
 async function main(){
     //Creación Usuarios
