@@ -1,8 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { PrismaClient } = require('./generated/prisma');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
@@ -14,8 +15,11 @@ const fs = require('fs');
 const path = require('path');
 const usersFilePath = path.join(__dirname, 'users.json');
 
-const errorHandler = require('./middlewares/errorHandle');
-const loggerMiddleware = require('./middlewares/logger')
+//Middlewares
+const errorHandler = require('./src/middlewares/errorHandle');
+const loggerMiddleware = require('./src/middlewares/logger')
+const authenticateToken = require('./src/middlewares/auth');
+
 const app = express();
 const bodyParser = require('body-parser');
 
@@ -82,7 +86,7 @@ app.post('/api/data', ( req , res ) => {
         return res.status(400).json({error: 'No se recibieron los datos'});
     }
     res.status(201).json({
-        message: 'Datos json recibidos!',
+        message: 'Datos Json recibidos!',
         data
     })
 });
@@ -173,6 +177,46 @@ app.get('/db-users', async (req, res) => {
         res.status(500).json({error: 'Error al comunicarse con la bd.'});
     }
 });
+
+app.get('/protected-route', authenticateToken, (req, res) => {
+    res.send('Esta es una ruta protegida.');
+});
+
+app.post('/register', async (req, res) => {
+    const { email, password, name } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+        data: {
+            email,
+            password: hashedPassword,
+            name,
+            role: 'USER'
+        }
+    });
+
+    res.status(201).json({ message: 'User Registered Successfully'});
+});
+
+app.post('/login', async (req, res) => {
+    const {email, password} = req.body;
+    const user = await prisma.user.findUnique({ where: { email }});
+
+    if (!user) return res.status(400).json({ error: 'Invalid email or password'});
+
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if(!validPassword) return res.status(400).json({ error: 'Invalid email or password'});
+
+    const token = jwt.sign(
+        { id: user.id, role: user.role},
+         process.env.JWT_SECRET, 
+        {expiresIn: '4h'}
+    );
+
+    res.json({ token });
+});
+
 app.use(errorHandler);
 app.listen(PORT, () => {
     console.log("TIPO:", typeof PORT);
