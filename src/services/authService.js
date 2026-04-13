@@ -1,11 +1,8 @@
 
 //Conexión con prisma
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { PrismaClient } = require('../../generated/prisma');
-const { Prisma } = require('@prisma/client');
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 
 //Encriptado
 const bcrypt = require('bcryptjs');
