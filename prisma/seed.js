@@ -1,8 +1,6 @@
 require('dotenv').config();
-//const { PrismaClient } = require('@prisma/client');
-const { PrismaClient } = require('../generated/prisma');
-console.log(process.env.DATABASE_URL);
-const prisma = new PrismaClient({});
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 async function main(){
     //Creación Usuarios
@@ -21,6 +19,14 @@ async function main(){
             email: 'admin1@example.com',
             password: 'admin123',
             name: 'Admin One',
+            role: 'ADMIN'
+        }
+    });
+    const admin2 = await prisma.user.create({
+        data: {
+            email: 'admin2@example.com',
+            password: 'admin123',
+            name: 'Admin Two',
             role: 'ADMIN'
         }
     });
